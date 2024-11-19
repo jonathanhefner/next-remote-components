@@ -1,4 +1,5 @@
 import MyServerComponent from "@/components/MyServerComponent"
+import { NextRequest } from "next/server"
 import { PassThrough } from "stream"
 
 // TODO Switch to `renderToReadableStream` when https://github.com/facebook/react/issues/26906 is fixed
@@ -17,13 +18,16 @@ const components = {
 }
 
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ component: string }> }
 ) {
   const Component = components[(await params).component as keyof typeof components]
   if (!Component) return new Response(null, { status: 404 })
 
+  const propsJson = request.nextUrl.searchParams.get("p")
+  const props = propsJson ? JSON.parse(propsJson) : {}
+
   const stream = new PassThrough()
-  renderToPipeableStream(<Component />).pipe(stream)
+  renderToPipeableStream(<Component {...props} />).pipe(stream)
   return new Response(stream as any)
 }
