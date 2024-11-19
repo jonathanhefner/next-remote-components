@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from "react";
+import { Ref, useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 async function fetchRemoteComponentHtml(name: string, props: {}): Promise<string> {
   const propsJson = JSON.stringify(props)
@@ -20,6 +21,20 @@ export default function MyClientComponent() {
     fetchRemoteComponentHtml("MyServerComponent", { hello: "world" }).then(setRemoteHtml)
   })
 
-  // TODO Avoid creating extraneous `div` when https://github.com/facebook/react/issues/12014 is addressed
-  return <div dangerouslySetInnerHTML={{ __html: remoteHtml }} />
+  const [childrenSlots, setChildrenSlots] = useState<HTMLElement[]>([])
+
+  const refCallback = useCallback((el: HTMLElement) => {
+    // TODO Use `dangerouslySetInnerHTML` when https://github.com/facebook/react/issues/31600 is fixed?
+    if (el) el.innerHTML = remoteHtml
+    setChildrenSlots(Array.from(el?.querySelectorAll("[data-children-slot]") ?? []))
+  }, [remoteHtml])
+
+  return <>
+    <slot ref={refCallback as Ref<HTMLSlotElement>} style={{ display: "contents" }} />
+    {childrenSlots.map(slot => createPortal(<MyChildComponent />, slot))}
+  </>
+}
+
+function MyChildComponent() {
+  return <strong>child</strong>
 }

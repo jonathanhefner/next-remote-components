@@ -13,6 +13,10 @@ import("react-dom/server").then(module => {
   renderToPipeableStream = module.renderToPipeableStream
 })
 
+function ChildrenSlot() {
+  return <slot data-children-slot style={{ display: "contents" }} />
+}
+
 const components = {
   MyServerComponent
 }
@@ -28,6 +32,6 @@ export async function GET(
   const props = propsJson ? JSON.parse(propsJson) : {}
 
   const stream = new PassThrough()
-  renderToPipeableStream(<Component {...props} />).pipe(stream)
+  renderToPipeableStream(<Component {...props} children={<ChildrenSlot />} />).pipe(stream)
   return new Response(stream as any)
 }
