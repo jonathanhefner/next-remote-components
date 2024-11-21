@@ -1,4 +1,4 @@
-import MyServerComponent from "@/components/MyServerComponent"
+import { MyServerComponent } from "@/components/MyServerComponent"
 import { NextRequest } from "next/server"
 import { PassThrough } from "stream"
 
