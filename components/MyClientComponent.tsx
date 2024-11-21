@@ -1,6 +1,6 @@
 'use client'
 
-import { Ref, useCallback, useEffect, useState } from "react";
+import { MutableRefObject, Ref, RefCallback, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 async function fetchRemoteComponentHtml(name: string, props: {}): Promise<string> {
@@ -14,11 +14,26 @@ async function fetchRemoteComponentHtml(name: string, props: {}): Promise<string
   return response.text()
 }
 
+type MutableRef<T> = MutableRefObject<T> | RefCallback<T>
+
+function handleElementRef(el: HTMLElement | null, ref: MutableRef<HTMLElement | null>) {
+  console.debug("ref", el)
+
+  if (typeof ref === "function") {
+    ref(el)
+  } else if (ref) {
+    ref.current = el
+  }
+}
+
 export default function MyClientComponent() {
+  const testProps = { hello: "world" }
+  const testRef = useRef<HTMLElement>(null)
+
   const [remoteHtml, setRemoteHtml] = useState("loading...")
 
   useEffect(() => {
-    fetchRemoteComponentHtml("MyServerComponent", { hello: "world" }).then(setRemoteHtml)
+    fetchRemoteComponentHtml("MyServerComponent", testProps).then(setRemoteHtml)
   })
 
   const [childrenSlots, setChildrenSlots] = useState<HTMLElement[]>([])
@@ -26,6 +41,10 @@ export default function MyClientComponent() {
   const refCallback = useCallback((el: HTMLElement) => {
     // TODO Use `dangerouslySetInnerHTML` when https://github.com/facebook/react/issues/31600 is fixed?
     if (el) el.innerHTML = remoteHtml
+
+    // TODO Avoid calling when `el` is not null but `[data-ref=remote-component-element]` does not exist?
+    handleElementRef(el?.querySelector("[data-ref=remote-component-element]"), testRef)
+
     setChildrenSlots(Array.from(el?.querySelectorAll("[data-children-slot]") ?? []))
   }, [remoteHtml])
 
