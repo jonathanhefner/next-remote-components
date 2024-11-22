@@ -1,12 +1,4 @@
-type TypeHack<T> = [never, T]
-type RemoteForwardedRef<T> = "remote-component-element" | TypeHack<T>
-type RemoteRefAttributes<T> = {} | TypeHack<T>
-
-function remoteForwardRef<TProps, TRef, TReturn extends (JSX.Element | Promise<JSX.Element>)>(
-  componentFn: (props: TProps, ref: RemoteForwardedRef<TRef>) => TReturn
-): (props: TProps & RemoteRefAttributes<TRef>) => TReturn {
-  return (props) => componentFn(props, "remote-component-element")
-}
+import { RemoteForwardedRef, remoteForwardRef } from "@/lib/rrc-server"
 
 export const MyServerComponent = remoteForwardRef(async (
   { hello, children }: { hello: string, children: React.ReactNode },
