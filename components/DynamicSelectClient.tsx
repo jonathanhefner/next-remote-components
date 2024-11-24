@@ -15,6 +15,8 @@ export default function DynamicSelectClient() {
       <option value="batch2">Batch 2</option>
       <option value="batch3">Batch 3</option>
     </select>
-    <DynamicSelectServer batch={batch} />
+    <Suspense fallback={"loading..."}>
+      <DynamicSelectServer batch={batch} />
+    </Suspense>
   </>
 }
