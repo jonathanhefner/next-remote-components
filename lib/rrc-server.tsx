@@ -19,19 +19,17 @@ type RemoteJSXElementConstructor<P> =
 
 export type RemoteComponentSet = { [key: string]: RemoteJSXElementConstructor<any> }
 
-type RemoteComponentRouteHandler = (
-  request: NextRequest,
-  arg: { params: Promise<{ component: string }> }
-) => Promise<Response>
+type RemoteComponentRouteHandler = (request: NextRequest) => Promise<Response>
 
 function ChildrenSlot() {
   return <slot data-children-slot style={{ display: "contents" }} />
 }
 
 export function serveRemoteComponents(components: RemoteComponentSet): RemoteComponentRouteHandler {
-  return async (request, { params }) => {
-    const Component = components[(await params).component]
-    if (!Component) return new Response(null, { status: 404 })
+  return async (request) => {
+    const componentName = request.nextUrl.searchParams.get("c")
+    const Component = componentName && components[componentName]
+    if (!Component) return new Response(`Unknown component: ${componentName}`, { status: 404 })
 
     const propsJson = request.nextUrl.searchParams.get("p")
     const props = propsJson ? JSON.parse(propsJson) : {}

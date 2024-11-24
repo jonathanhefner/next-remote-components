@@ -4,7 +4,7 @@ import { useRemoteComponents } from "@/lib/rrc-client"
 import { Suspense, useState } from "react"
 import type myRemoteComponents from "./my-remote-components"
 
-const { DynamicSelectServer } = useRemoteComponents<typeof myRemoteComponents>("/api/remote-components")
+const { DynamicSelectServer } = useRemoteComponents<typeof myRemoteComponents>("/api/remote-component")
 
 export default function DynamicSelectClient() {
   const [batch, setBatch] = useState("batch1")

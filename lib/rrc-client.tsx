@@ -5,8 +5,8 @@ import type { RemoteComponentSet } from "./rrc-server"
 async function fetchRemoteComponentHtml(name: string, route: string, propsJson: string): Promise<string> {
   // TODO Use HTTP `QUERY` method when supported
   // See https://datatracker.ietf.org/doc/draft-ietf-httpbis-safe-method-w-body/
-  const response = await fetch(`${route}/${name}?${new URLSearchParams({ p: propsJson })}`)
-  if (!response.ok) throw new Error(`Could not fetch ${name} component (${response.status})`)
+  const response = await fetch(`${route}?${new URLSearchParams({ c: name, p: propsJson })}`)
+  if (!response.ok) throw new Error(`${response.statusText} (${response.status})`)
   return await response.text()
 }
 
