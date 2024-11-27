@@ -1,7 +1,7 @@
-const batches: Record<string, number[]> = {
-  "batch1": [...Array(50).keys().map(i => i + 100)],
-  "batch2": [...Array(50).keys().map(i => i + 200)],
-  "batch3": [...Array(50).keys().map(i => i + 300)],
+const batches: Record<string, string[]> = {
+  "batch1": [...Array(50).keys().map(i => `Item ${i + 100}`)],
+  "batch2": [...Array(50).keys().map(i => `Item ${i + 200}`)],
+  "batch3": [...Array(50).keys().map(i => `Item ${i + 300}`)],
 }
 
 export default async function DynamicSelectServer({ batch }: { batch: string }) {

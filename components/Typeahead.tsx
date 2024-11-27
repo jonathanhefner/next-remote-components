@@ -11,6 +11,7 @@ export default function Typeahead() {
 
   return <>
     <input
+      type="search"
       value={value}
       onChange={e => setValue(e.target.value)}
       list="typeahead-suggestions"

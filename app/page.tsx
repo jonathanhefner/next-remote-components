@@ -1,20 +1,23 @@
 import DynamicSelectClient from "@/components/DynamicSelectClient"
 import MyClientComponent from "@/components/MyClientComponent"
 import Typeahead from "@/components/Typeahead"
+import "./page.css"
 
 export default function Home() {
   return <>
-    <h2>Basic Example</h2>
-    <MyClientComponent />
+    <section className="basic-example">
+      <h2>Basic Example</h2>
+      <div><MyClientComponent /></div>
+    </section>
 
-    <hr />
+    <section className="dynamic-select">
+      <h2>Dynamic Select + Suspense</h2>
+      <div><DynamicSelectClient /></div>
+    </section>
 
-    <h2>Dynamic Select</h2>
-    <DynamicSelectClient />
-
-    <hr />
-
-    <h2>Typeahead</h2>
-    <Typeahead />
+    <section className="typeahead">
+      <h2>Typeahead</h2>
+      <div><Typeahead /></div>
+    </section>
   </>
 }
