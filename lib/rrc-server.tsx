@@ -21,8 +21,8 @@ export type RemoteComponentSet = { [key: string]: RemoteJSXElementConstructor<an
 
 type RemoteComponentRouteHandler = (request: NextRequest) => Promise<Response>
 
-function ChildrenSlot() {
-  return <slot data-children-slot style={{ display: "contents" }} />
+function ChildrenPlaceholder() {
+  return <template data-children-placeholder />
 }
 
 export function serveRemoteComponents(components: RemoteComponentSet): RemoteComponentRouteHandler {
@@ -35,7 +35,7 @@ export function serveRemoteComponents(components: RemoteComponentSet): RemoteCom
     const props = propsJson ? JSON.parse(propsJson) : {}
 
     const stream = new PassThrough()
-    renderToPipeableStream(<Component {...props} children={<ChildrenSlot />} />).pipe(stream)
+    renderToPipeableStream(<Component {...props} children={<ChildrenPlaceholder />} />).pipe(stream)
     return new Response(stream as any)
   }
 }

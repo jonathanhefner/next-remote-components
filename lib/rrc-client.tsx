@@ -1,4 +1,4 @@
-import { use, useCallback, useMemo, useState } from "react"
+import { forwardRef, use, useCallback, useImperativeHandle, useMemo, useRef } from "react"
 import { createPortal } from "react-dom"
 import type { RemoteComponentSet } from "./rrc-server"
 
@@ -23,36 +23,110 @@ function useRemoteComponentHtml(name: string, route: string, props: Props): stri
   return html
 }
 
-function setRef(ref: React.ForwardedRef<HTMLElement | null>, el: HTMLElement | null) {
-  if (typeof ref === "function") {
-    ref(el)
-  } else if (ref) {
-    ref.current = el
+function processRemoteComponentHtml(html: string): [ParentNode, ChildNode[]] {
+  const container = document.createElement("div")
+  container.innerHTML = html
+  container.prepend(document.createComment(""))
+
+  const childrenPlaceholderElements = container.querySelectorAll("[data-children-placeholder]")
+  const childrenPlaceholders = Array.from(childrenPlaceholderElements).map(element => {
+    const comment = document.createComment("")
+    element.replaceWith(comment)
+    return comment
+  })
+
+  return [container, childrenPlaceholders]
+}
+
+function sliceNodes(startNode: ChildNode, endNode: ChildNode): ChildNode[] {
+  if (!startNode.parentNode) {
+    console.error("Cannot slice because node", startNode, "is unparented")
+    return []
+  }
+
+  const nodes = Array.from(startNode.parentNode.childNodes)
+  const startIndex = nodes.indexOf(startNode)
+  const endIndex = nodes.indexOf(endNode, startIndex)
+
+  if (endIndex < 0) {
+    console.error("Expected node", endNode, "to follow node", startNode)
+    return []
+  } else {
+    return nodes.slice(startIndex, endIndex)
   }
 }
 
-type Props = { children?: React.ReactNode, ref?: React.ForwardedRef<HTMLElement | null> }
+const Placeholder = forwardRef(function (props: {}, forwardedRef: React.ForwardedRef<ChildNode>) {
+  const comment = useMemo(() => document.createComment(""), [])
+  useImperativeHandle(forwardedRef, () => comment, [])
+
+  const elementRef: React.MutableRefObject<HTMLTemplateElement | null> = useRef(null)
+  const swapWithComment = useCallback((element: HTMLTemplateElement) => {
+    if (element) { // mount
+      element.replaceWith(comment)
+    } else { // unmount
+      comment.replaceWith(elementRef.current!)
+    }
+    elementRef.current = element
+  }, [])
+
+  return <template ref={swapWithComment} />
+})
+
+function InjectChildren(
+  { children, placeholder }: { children?: React.ReactNode, placeholder: ChildNode }
+) {
+  if (!children) return
+
+  const firstNodeRef = useRef<ChildNode>(null)
+
+  const containerRef: React.MutableRefObject<HTMLDivElement | null> = useRef(null)
+  const manageNodes = useCallback((container: HTMLDivElement) => {
+    if (container) { // mount
+      placeholder.before(...container.childNodes)
+    } else { // unmount
+      containerRef.current!.append(...sliceNodes(firstNodeRef.current!, placeholder))
+    }
+    containerRef.current = container
+  }, [placeholder])
+
+  return createPortal(
+    <div hidden inert ref={manageNodes}>
+      <Placeholder ref={firstNodeRef} />
+      {children}
+    </div>
+  , document.body)
+}
+
+type Props = { children?: React.ReactNode, ref?: React.ForwardedRef<Element> }
 
 function renderRemoteComponent(name: string, route: string, props: Props) {
   let children, ref
   ({ children, ref, ...props } = props)
   const html = useRemoteComponentHtml(name, route, props)
 
-  const [childrenSlots, setChildrenSlots] = useState<HTMLElement[]>([])
+  const [container, childrenPlaceholders] = useMemo(() => processRemoteComponentHtml(html), [html])
+  const firstNode = useMemo(() => container.firstChild!, [html])
 
-  const renderHtml = useCallback((el: HTMLElement) => {
-    // TODO Use `dangerouslySetInnerHTML` when https://github.com/facebook/react/issues/31600 is fixed?
-    if (el) el.innerHTML = html
+  // HACK Server-side React ignores (i.e. does not render) `ref` attribute, so use `data-ref`
+  const refElement = useMemo(() => container.querySelector("[data-ref]"), [html])
+  useImperativeHandle(ref, () => refElement as Element, [html])
 
-    // TODO Avoid calling when `el` is not null but `[data-ref=remote-component-element]` does not exist?
-    if (ref) setRef(ref, el?.querySelector("[data-ref=remote-component-element]"))
-
-    setChildrenSlots(Array.from(el?.querySelectorAll("[data-children-slot]") ?? []))
-  }, [html, ref])
+  const placeholderRef: React.MutableRefObject<ChildNode | null> = useRef(null)
+  const manageNodes = useCallback((placeholder: ChildNode) => {
+    if (placeholder) { // mount
+      placeholder.before(...container.childNodes)
+    } else { // unmount
+      container.append(...sliceNodes(firstNode, placeholderRef.current!))
+    }
+    placeholderRef.current = placeholder
+  }, [html])
 
   return <>
-    <slot ref={renderHtml as React.Ref<HTMLSlotElement>} style={{ display: "contents" }} />
-    {childrenSlots.map(slot => createPortal(children, slot))}
+    {childrenPlaceholders.map((childrenPlaceholder, i) =>
+      <InjectChildren children={children} placeholder={childrenPlaceholder} key={i} />
+    )}
+    <Placeholder ref={manageNodes} />
   </>
 }
 
