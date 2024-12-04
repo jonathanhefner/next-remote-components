@@ -1,36 +1,220 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# next-remote-components
 
-## Getting Started
+This is a userland prototype and demo of remote components — React server components that are rendered remotely, on demand by client components, without the need for an explicit fetch or dedicated API endpoint.
 
-First, run the development server:
+The core implementation is in [`lib/rrc-server`](./lib/rrc-server.tsx) and [`lib/rrc-client`](./lib/rrc-client.tsx).
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+My hope is that React itself will eventually implement this functionality.  In the mean time, this project serves as a proof of concept.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Usage
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+To use remote components in your own project, copy [`lib/rrc-server`](./lib/rrc-server.tsx) and [`lib/rrc-client`](./lib/rrc-client.tsx) into your project, and then follow these steps:
 
-## Learn More
+1. Create a server component:
 
-To learn more about Next.js, take a look at the following resources:
+    ```tsx
+    // components/MyServerComponent.tsx
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+    export default async function MyServerComponent() {
+      return <span>Hello from the server!</span>
+    }
+    ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+2. Create a remote component set that includes the server component:
 
-## Deploy on Vercel
+    ```ts
+    // components/my-remote-components.ts
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+    import MyServerComponent from "./MyServerComponent"
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+    export default {
+      MyServerComponent,
+    }
+    ```
+
+    (This step would likely be eliminated if React itself implements remote components.)
+
+3. Create a single API endpoint that serves any remote component in the set:
+
+    ```ts
+    // app/api/remote-component/route.ts
+
+    import myRemoteComponents from "@/components/my-remote-components"
+    import { serveRemoteComponents } from "@/lib/rrc-server"
+
+    export const GET = serveRemoteComponents(myRemoteComponents)
+    ```
+
+    (This step would likely be eliminated if React itself implements remote components.)
+
+4. Create a client component that uses the remote component from the set:
+
+    ```tsx
+    // components/MyClientComponent.tsx
+
+    'use client'
+
+    import type myRemoteComponents from "@/components/my-remote-components"
+    import { useRemoteComponents } from "@/lib/rrc-client"
+
+    const { MyServerComponent } = useRemoteComponents<typeof myRemoteComponents>("/api/remote-component")
+
+    export default function MyClientComponent() {
+      return <p>The server says: <MyServerComponent /></p>
+    }
+    ```
+
+
+## Features
+
+### Static typing
+
+Remote components and their props are statically typed.  For example:
+
+  ```tsx
+  export default async function MyServerComponent(props: { value: number }) {
+    // ...
+  }
+  ```
+
+  ```tsx
+  export default function MyClientComponent() {
+    return <>
+      {/* ERROR: Type '{}' is missing the following properties from type '{ value: number; }': value */}
+      <MyServerComponent />
+
+      {/* ERROR: Property 'children' does not exist on type 'IntrinsicAttributes & { value: number; }' */}
+      <MyServerComponent>child</MyServerComponent>
+
+      {/* ERROR: Type 'string' is not assignable to type 'number' */}
+      <MyServerComponent value="100" />
+
+      {/* CORRECT! */}
+      <MyServerComponent value={100} />
+    </>
+  }
+  ```
+
+### Client components as children
+
+Remote components support "passing" client components as children.  Behind the scenes, the remote components merely render a placeholder which is then replaced with the given client components.  For example:
+
+  ```tsx
+  export default async function MyServerComponent({ children }: { children: React.ReactNode }) {
+    return <>
+      I have twins:
+
+      <ul>
+        <li>{children}</li>
+        <li>{children}</li>
+      </ul>
+    </>
+  }
+  ```
+
+  ```tsx
+  export default function MyClientComponent() {
+    return <MyServerComponent>child</MyServerComponent>
+  }
+  ```
+
+### Suspense boundaries
+
+Remote components trigger client-side `<Suspense>` boundaries while they are fetching the rendered HTML.  For example:
+
+  ```tsx
+  export default async function MyServerComponent({ query }: { query: string }) {
+    const results = await execQuery(query)
+    return results.map(result => <li>...</li>)
+  }
+  ```
+
+  ```tsx
+  export default function MyClientComponent() {
+    const [query, setQuery] = useState("")
+
+    return <>
+      <input value={query} onChange={e => setQuery(e.target.value)}>
+
+      <Suspense fallback={<p>Loading...</p>}>
+        <ul>
+          <MyServerComponent query={query} />
+        </ul>
+      </Suspense>
+    </>
+  }
+  ```
+
+### Refs to elements
+
+Remote components support refs to elements, however the component must use `remoteForwardRef` from `lib/rrc-server` instead of React's `forwardRef`, and the `data-ref` attribute instead of the `ref` attribute:
+
+  ```tsx
+  import { RemoteForwardedRef, remoteForwardRef } from "@/lib/rrc-server"
+
+  export const MyServerComponent = remoteForwardRef(async (
+    props: {}, ref: RemoteForwardedRef<HTMLSpanElement>
+  ) => {
+    {/* Server-side React ignores (i.e. does not render) `ref` attribute, so must use `data-ref` */}
+    return <span data-ref={ref}>Hello from the server!</span>
+  })
+  ```
+
+  ```tsx
+  export default function MyClientComponent() {
+    const callbackRef = (el: HTMLSpanElement) => {
+      console.log("Remote component element: ", el)
+    }
+
+    return <MyServerComponent ref={callbackRef} />
+  }
+  ```
+
+
+## Caveats
+
+There are some caveats with the current implementation.  Most of these could hypothetically be addressed in userland at some point in the future.  That said, if React itself implements remote components, it should be able to address all of them.
+
+### Props must be JSON round-trip capable
+
+Remote components props are serialized as JSON when sending the request and deserialized when rendering the component.  Errors may occur if any prop values are not JSON round-trip capable.
+
+Note that React server actions can serialize a [larger set of types](https://react.dev/reference/rsc/use-server#serializable-parameters-and-return-values).  Currently, the serialization mechanism is not publicly documented and appears to be tied to the bundler.  In the future, though, remote components could support the same set of types.
+
+### Serialized props should not be excessively large
+
+Remote components are fetched using HTTP `GET`, and serialized props are passed in the URL's query string.  URLs can be subject to size limitations, depending on the infrastructure involved.  RFC 9110 _recommends_ that ["all senders and recipients support, at a minimum, URIs with lengths of 8000 octets"](https://www.rfc-editor.org/rfc/rfc9110.html#section-4.1), but that support is not _mandated_.
+
+This issue can be addressed by using the [HTTP `QUERY` method](https://datatracker.ietf.org/doc/draft-ietf-httpbis-safe-method-w-body/) once it is widely supported.  Alternatively, a framework-level solution could define an API endpoint that accepts both `GET` and `POST` requests, and the client could fall back to `POST` when serialized props are large.
+
+### Remote components cannot directly embed client components
+
+Unlike typical React server components, which are rendered as an RSC payload, remote components are currently rendered as HTML before being sent to the client.  Therefore, they do not support directly embedding client components.  (Though they do [support using client components as children](#client-components-as-children).)
+
+This could change in the future.  Of course, if React itself implements remote components, it would likely render them as RSC payloads, and thus support embedding client components.
+
+### Remote component ref limitations
+
+As [mentioned above](#refs-to-elements), remote components must use `remoteForwardRef` instead of `forwardRef`, and the `data-ref` attribute instead of the `ref` attribute.  This is a consequence of being a userland implementation.  If React itself implements remote components, it would likely eliminate this difference.
+
+Additionally, currently, only element refs are supported — refs to arbitrary values are not supported.  In the future, refs to serializable values could be supported, but it would make sense to first support serializing a larger set of types, and also to switch to rendering an RSC payload instead of HTML.  If React itself implements remote components, the implementation might be simpler.
+
+
+## Further improvements from a non-userland implementation
+
+There are further improvements that could be made if remote components are implemented by React itself or a framework like Next.js.
+
+### DX improvements
+
+As noted in the [Usage](#usage) section, a non-userland implementation could eliminate the step of defining a remote component set.  In a userland implementation, this step is necessary to be able to "import" a remote remote in a client component module.  A non-userland implementation could instead integrate with the bundler to specially handle `import`s of remote components.
+
+A non-userland implementation could also eliminate the step of defining an API endpoint.  Instead, the implementation could provide a managed behind-the-scenes endpoint to serve all remote components.  There could be additional benefits as well, such as enforced security.
+
+Also, it may be possible to improve the DX of suspense boundaries for remote components, similar to the DX provided by `loading.tsx` files in Next.js.  For example, if a `MyServerComponent.loading.tsx` file is specified, perhaps it could be automatically bundled and rendered by the client component during a suspense for `<MyServerComponent>`.
+
+### Performance improvements
+
+Currently, remote components are not prerendered when prerendering client components, because rendering must go through the remote component API endpoint.  A non-userland implementation could render remote components directly, without going through the API endpoint.  Thus, remote components could be prerendered along with client components.
+
+There are also various performance improvements that could be made by integrating more closely with React and framework internals.  For example, reducing the number of DOM operations when handling element placeholders and children.
