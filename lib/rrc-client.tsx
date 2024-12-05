@@ -1,4 +1,4 @@
-import { forwardRef, use, useCallback, useImperativeHandle, useMemo, useRef } from "react"
+import { forwardRef, use, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import type { RemoteComponentSet } from "./rrc-server"
 
@@ -18,24 +18,39 @@ function useRemoteComponentHtml(name: string, route: string, props: Props): stri
     })
   }, [url])
 
-  const html = use(htmlPromise)
-  if (pendingPromises[url] === htmlPromise) delete pendingPromises[url]
-  return html
+  useEffect(() => {
+    if (pendingPromises[url] === htmlPromise) delete pendingPromises[url]
+  })
+
+  return use(htmlPromise)
 }
 
-function processRemoteComponentHtml(html: string): [ParentNode, ChildNode[]] {
+function processRemoteComponentHtml(html: string): [React.RefCallback<ChildNode>, ChildNode[], Element | null] {
+  if (!globalThis.window?.document) return [() => { }, [], null] // Avoid DOM during SSR
+
   const container = document.createElement("div")
   container.innerHTML = html
-  container.prepend(document.createComment(""))
 
-  const childrenPlaceholderElements = container.querySelectorAll("[data-children-placeholder]")
-  const childrenPlaceholders = Array.from(childrenPlaceholderElements).map(element => {
+  const firstNode = document.createComment("")
+  container.prepend(firstNode)
+
+  const placeholderCallback = (placeholder: ChildNode) => {
+    placeholder.before(...container.childNodes)
+    return () => { container.append(...sliceNodes(firstNode, placeholder)) }
+  }
+
+  const childrenPlaceholders = Array.from(
+    container.querySelectorAll("[data-children-placeholder]")
+  ).map(element => {
     const comment = document.createComment("")
     element.replaceWith(comment)
     return comment
   })
 
-  return [container, childrenPlaceholders]
+  // HACK Server-side React ignores (i.e. does not render) `ref` attribute, so use `data-ref`
+  const refElement = container.querySelector("[data-ref]")
+
+  return [placeholderCallback, childrenPlaceholders, refElement]
 }
 
 function sliceNodes(startNode: ChildNode, endNode: ChildNode): ChildNode[] {
@@ -57,18 +72,13 @@ function sliceNodes(startNode: ChildNode, endNode: ChildNode): ChildNode[] {
 }
 
 const Placeholder = forwardRef(function (props: {}, forwardedRef: React.ForwardedRef<ChildNode>) {
-  const comment = useMemo(() => document.createComment(""), [])
-  useImperativeHandle(forwardedRef, () => comment, [])
+  const comment = useMemo(() => globalThis.window?.document?.createComment(""), []) // Avoid DOM during SSR
+  useImperativeHandle(forwardedRef, () => comment, [comment])
 
-  const elementRef: React.MutableRefObject<HTMLTemplateElement | null> = useRef(null)
   const swapWithComment = useCallback((element: HTMLTemplateElement) => {
-    if (element) { // mount
-      element.replaceWith(comment)
-    } else { // unmount
-      comment.replaceWith(elementRef.current!)
-    }
-    elementRef.current = element
-  }, [])
+    element.replaceWith(comment)
+    return () => { comment.replaceWith(element) }
+  }, [comment])
 
   return <template ref={swapWithComment} />
 })
@@ -80,14 +90,9 @@ function InjectChildren(
 
   const firstNodeRef = useRef<ChildNode>(null)
 
-  const containerRef: React.MutableRefObject<HTMLDivElement | null> = useRef(null)
   const manageNodes = useCallback((container: HTMLDivElement) => {
-    if (container) { // mount
-      placeholder.before(...container.childNodes)
-    } else { // unmount
-      containerRef.current!.append(...sliceNodes(firstNodeRef.current!, placeholder))
-    }
-    containerRef.current = container
+    placeholder.before(...container.childNodes)
+    return () => { container.append(...sliceNodes(firstNodeRef.current!, placeholder)) }
   }, [placeholder])
 
   return createPortal(
@@ -105,28 +110,20 @@ function renderRemoteComponent(name: string, route: string, props: Props) {
   ({ children, ref, ...props } = props)
   const html = useRemoteComponentHtml(name, route, props)
 
-  const [container, childrenPlaceholders] = useMemo(() => processRemoteComponentHtml(html), [html])
-  const firstNode = useMemo(() => container.firstChild!, [html])
+  const [placeholderCallback, childrenPlaceholders, refElement] =
+    useMemo(() => processRemoteComponentHtml(html), [html])
 
-  // HACK Server-side React ignores (i.e. does not render) `ref` attribute, so use `data-ref`
-  const refElement = useMemo(() => container.querySelector("[data-ref]"), [html])
-  useImperativeHandle(ref, () => refElement as Element, [html])
+  useImperativeHandle(ref, () => refElement as Element, [refElement])
 
-  const placeholderRef: React.MutableRefObject<ChildNode | null> = useRef(null)
-  const manageNodes = useCallback((placeholder: ChildNode) => {
-    if (placeholder) { // mount
-      placeholder.before(...container.childNodes)
-    } else { // unmount
-      container.append(...sliceNodes(firstNode, placeholderRef.current!))
-    }
-    placeholderRef.current = placeholder
-  }, [html])
+  // Avoid hydration errors due to childrenPlaceholders
+  const [firstRender, setFirstRender] = useState(true)
+  if (firstRender) return <Placeholder ref={() => { setFirstRender(false) }} />
 
   return <>
     {childrenPlaceholders.map((childrenPlaceholder, i) =>
       <InjectChildren children={children} placeholder={childrenPlaceholder} key={i} />
     )}
-    <Placeholder ref={manageNodes} />
+    <Placeholder ref={placeholderCallback} />
   </>
 }
 
