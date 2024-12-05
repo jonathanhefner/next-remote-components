@@ -13,11 +13,7 @@ import("react-dom/server").then(module => {
 })
 
 
-type RemoteJSXElementConstructor<P> =
-  | ((props: P) => React.JSX.Element)
-  | ((props: P) => Promise<React.JSX.Element>)
-
-export type RemoteComponentSet = { [key: string]: RemoteJSXElementConstructor<any> }
+export type RemoteComponentSet = { [key: string]: (props: any) => React.ReactNode }
 
 type RemoteComponentRouteHandler = (request: NextRequest) => Promise<Response>
 
@@ -42,7 +38,7 @@ export function serveRemoteComponents(components: RemoteComponentSet): RemoteCom
 
 export type RemoteForwardedRef<R> = "remote-component-element" | [never, R]
 
-export function remoteForwardRef<TProps, TRef, TReturn extends (React.JSX.Element | Promise<React.JSX.Element>)>(
+export function remoteForwardRef<TProps, TRef, TReturn extends React.ReactNode>(
   componentFn: (props: TProps, ref: RemoteForwardedRef<TRef>) => TReturn
 ): (props: TProps & React.RefAttributes<TRef>) => TReturn {
   return (props) => componentFn(props, "remote-component-element")
