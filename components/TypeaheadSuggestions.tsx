@@ -1,11 +1,5 @@
-export default async function TypeaheadSuggestions({ id, inputValue }: { id: string, inputValue: string }) {
+export default async function TypeaheadSuggestions({ inputValue }: { inputValue: string }) {
   const suggestions = [...Array(10).keys().map(i => `${inputValue}${i}`)]
 
-  return (
-    <datalist id={id}>
-      {suggestions.map(value =>
-        <option key={value} value={value} />
-      )}
-    </datalist>
-  )
+  return suggestions.map(value => <option key={value} value={value} />)
 }

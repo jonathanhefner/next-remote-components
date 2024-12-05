@@ -131,7 +131,7 @@ function renderRemoteComponent(name: string, route: string, props: Props) {
 }
 
 type ResolvedComponentSet<TSet extends RemoteComponentSet> = {
-  [key in keyof TSet]: (props: React.ComponentProps<TSet[key]>) => React.JSX.Element
+  [key in keyof TSet]: (props: React.ComponentProps<TSet[key]>) => React.ReactNode
 }
 
 export function useRemoteComponents<T extends RemoteComponentSet>(route: string): ResolvedComponentSet<T> {

@@ -16,6 +16,8 @@ export default function Typeahead() {
       onChange={e => setValue(e.target.value)}
       list="typeahead-suggestions"
     />
-    <TypeaheadSuggestions id="typeahead-suggestions" inputValue={value} />
+    <datalist id="typeahead-suggestions">
+      <TypeaheadSuggestions inputValue={value} />
+    </datalist>
   </>
 }
