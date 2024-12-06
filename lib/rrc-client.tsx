@@ -1,33 +1,36 @@
-import { forwardRef, use, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react"
+import { forwardRef, use, useCallback, useEffect, useId, useImperativeHandle, useMemo, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import type { RemoteComponentSet } from "./rrc-server"
 
-const pendingPromises: Record<string, Promise<string>> = {}
+type RemoteComponentParts = [
+  placeholderCallback: React.RefCallback<ChildNode>,
+  childrenPlaceholders: ChildNode[],
+  refElement: Element | null,
+]
 
-function useRemoteComponentHtml(name: string, route: string, props: Props): string {
-  if (!globalThis.window?.document) return "" // Avoid fetch during SSR
+const pendingPromises: Record<string, Promise<RemoteComponentParts>> = {}
+
+function useRemoteComponent(name: string, route: string, props: Props): RemoteComponentParts {
+  if (!globalThis.window?.document) return [() => { }, [], null] // Avoid fetch and DOM during SSR
 
   const url = `${route}?${new URLSearchParams({ c: name, p: JSON.stringify(props) })}`
+  const componentId = useId()
 
-  const htmlPromise = useMemo(() => {
+  const promise = useMemo(() => {
     // TODO Use HTTP `QUERY` method when supported
     // See https://datatracker.ietf.org/doc/draft-ietf-httpbis-safe-method-w-body/
-    return pendingPromises[url] ??= fetch(url).then(response => {
+    return pendingPromises[componentId] ??= fetch(url).then(async response => {
       if (!response.ok) throw new Error(`${response.statusText} (${response.status})`)
-      return response.text()
+      return processRemoteComponentHtml(await response.text())
     })
   }, [url])
 
-  useEffect(() => {
-    if (pendingPromises[url] === htmlPromise) delete pendingPromises[url]
-  })
+  useEffect(() => { delete pendingPromises[componentId] }, [url])
 
-  return use(htmlPromise)
+  return use(promise)
 }
 
-function processRemoteComponentHtml(html: string): [React.RefCallback<ChildNode>, ChildNode[], Element | null] {
-  if (!globalThis.window?.document) return [() => { }, [], null] // Avoid DOM during SSR
-
+function processRemoteComponentHtml(html: string): RemoteComponentParts {
   const container = document.createElement("div")
   container.innerHTML = html
 
@@ -108,10 +111,7 @@ type Props = { children?: React.ReactNode, ref?: React.ForwardedRef<Element> }
 function renderRemoteComponent(name: string, route: string, props: Props) {
   let children, ref
   ({ children, ref, ...props } = props)
-  const html = useRemoteComponentHtml(name, route, props)
-
-  const [placeholderCallback, childrenPlaceholders, refElement] =
-    useMemo(() => processRemoteComponentHtml(html), [html])
+  const [placeholderCallback, childrenPlaceholders, refElement] = useRemoteComponent(name, route, props)
 
   useImperativeHandle(ref, () => refElement as Element, [refElement])
 
