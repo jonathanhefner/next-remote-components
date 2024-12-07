@@ -5,12 +5,21 @@ body {
 section {
   margin: 1rem;
   padding: 1rem;
-  max-width: 25rem;
+  max-width: 24rem;
   border: 1px solid black;
 }
 
-section * + * {
-  margin-top: 0.5rem;
+section h2 + p {
+  font-size: 0.85em;
+
+  &::before {
+    content: "↳";
+    margin-right: 0.15em;
+  }
+}
+
+.demo {
+  margin-top: 1.45rem;
 }
 
 label {
@@ -36,8 +45,12 @@ input, select, button {
 }
 
 .basic-example {
+  > div * + * {
+    margin-top: 0.45rem;
+  }
+
   * + input {
-    margin: 0 0 0 0.5em;
+    margin: 0 0 0 0.45em;
   }
 
   label {
@@ -57,11 +70,11 @@ input, select, button {
 
 .dynamic-select {
   * + select {
-    margin: 0 0 0 0.5em;
+    margin: 0 0 0 0.45em;
   }
 
   select {
-    width: calc((100% - 0.5em) / 2);
+    width: calc((100% - 0.45em) / 2);
   }
 }
 
