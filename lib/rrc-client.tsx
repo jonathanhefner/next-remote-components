@@ -1,6 +1,6 @@
-import { forwardRef, use, useCallback, useEffect, useId, useImperativeHandle, useMemo, useRef, useState } from "react"
+import { use, useCallback, useEffect, useId, useImperativeHandle, useMemo, useRef, useState } from "react"
 import { createPortal } from "react-dom"
-import type { RemoteComponentSet } from "./rrc-server"
+import type { RemoteComponentProps, RemoteComponentSet } from "./rrc-server"
 
 type RemoteComponentParts = [
   placeholderCallback: React.RefCallback<ChildNode>,
@@ -74,9 +74,9 @@ function sliceNodes(startNode: ChildNode, endNode: ChildNode): ChildNode[] {
   }
 }
 
-const Placeholder = forwardRef(function (props: {}, forwardedRef: React.ForwardedRef<ChildNode>) {
+function Placeholder({ ref }: { ref: React.ForwardedRef<ChildNode> }) {
   const comment = useMemo(() => globalThis.window?.document?.createComment(""), []) // Avoid DOM during SSR
-  useImperativeHandle(forwardedRef, () => comment, [comment])
+  useImperativeHandle(ref, () => comment, [comment])
 
   const swapWithComment = useCallback((element: HTMLTemplateElement) => {
     element.replaceWith(comment)
@@ -84,7 +84,7 @@ const Placeholder = forwardRef(function (props: {}, forwardedRef: React.Forwarde
   }, [comment])
 
   return <template ref={swapWithComment} />
-})
+}
 
 function InjectChildren(
   { children, placeholder }: { children?: React.ReactNode, placeholder: ChildNode }
@@ -128,7 +128,7 @@ function renderRemoteComponent(name: string, route: string, props: Props) {
 }
 
 type ResolvedComponentSet<TSet extends RemoteComponentSet> = {
-  [key in keyof TSet]: (props: React.ComponentProps<TSet[key]>) => React.ReactNode
+  [key in keyof TSet]: (props: RemoteComponentProps<TSet[key]>) => React.ReactNode
 }
 
 export function useRemoteComponents<T extends RemoteComponentSet>(route: string): ResolvedComponentSet<T> {

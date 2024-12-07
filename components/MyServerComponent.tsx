@@ -1,13 +1,13 @@
-import { RemoteForwardedRef, remoteForwardRef } from "@/lib/rrc-server"
+import { RemoteRef } from "@/lib/rrc-server"
 
-export const MyServerComponent = remoteForwardRef(async (
-  { hello, repeat, children }: {
+export default async function MyServerComponent(
+  { hello, repeat, children, ref }: {
     hello: string,
     repeat: number,
     children: React.ReactNode
-  },
-  ref: RemoteForwardedRef<HTMLSpanElement>,
-) => {
+    ref: RemoteRef<HTMLSpanElement>,
+  }
+) {
   return <>
     <p>
       {/* HACK Server-side React ignores (i.e. does not render) `ref` attribute, so use `data-ref` */}
@@ -17,4 +17,4 @@ export const MyServerComponent = remoteForwardRef(async (
       {Array(repeat).fill(<li key={null}>{children}</li>)}
     </ul>
   </>
-})
+}
