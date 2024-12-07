@@ -31,15 +31,18 @@ export function serveRemoteComponents(components: RemoteComponentSet): RemoteCom
     const props = propsJson ? JSON.parse(propsJson) : {}
 
     const stream = new PassThrough()
-    renderToPipeableStream(<Component {...props} children={<ChildrenPlaceholder />} />).pipe(stream)
+    renderToPipeableStream(
+      <Component {...props} children={<ChildrenPlaceholder />} ref="remote-component-element" />
+    ).pipe(stream)
     return new Response(stream as any)
   }
 }
 
-export type RemoteForwardedRef<R> = "remote-component-element" | [never, R]
+export type RemoteRef<T extends Element> = "remote-component-element" | [never, T]
 
-export function remoteForwardRef<TProps, TRef, TReturn extends React.ReactNode>(
-  componentFn: (props: TProps, ref: RemoteForwardedRef<TRef>) => TReturn
-): (props: TProps & React.RefAttributes<TRef>) => TReturn {
-  return (props) => componentFn(props, "remote-component-element")
-}
+type RemoteRefAttributes<T extends Element> = { ref?: RemoteRef<T> }
+
+export type RemoteComponentProps<TComponent extends React.JSXElementConstructor<any>> =
+  React.ComponentProps<TComponent> extends RemoteRefAttributes<infer TRef>
+    ? React.PropsWithoutRef<React.ComponentProps<TComponent>> & React.RefAttributes<TRef>
+    : React.ComponentProps<TComponent>

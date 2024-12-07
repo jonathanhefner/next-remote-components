@@ -148,14 +148,14 @@ Remote components trigger client-side `<Suspense>` boundaries while they are fet
 
 ### Refs to elements
 
-Remote components support refs to elements, however the component must use `remoteForwardRef` from `lib/rrc-server` instead of React's `forwardRef`, and the `data-ref` attribute instead of the `ref` attribute:
+Remote components support refs to elements, however the remote component must use the `RemoteRef` type instead of `React.Ref`, and the `data-ref` attribute instead of the `ref` attribute:
 
   ```tsx
-  import { RemoteForwardedRef, remoteForwardRef } from "@/lib/rrc-server"
+  import { RemoteRef } from "@/lib/rrc-server"
 
-  export const MyServerComponent = remoteForwardRef(async (
-    props: {}, ref: RemoteForwardedRef<HTMLSpanElement>
-  ) => {
+  export default async function MyServerComponent(
+    { ref }: { ref: RemoteRef<HTMLSpanElement> }
+  ) {
     {/* Server-side React ignores (i.e. does not render) `ref` attribute, so must use `data-ref` */}
     return <span data-ref={ref}>Hello from the server!</span>
   })
@@ -163,11 +163,11 @@ Remote components support refs to elements, however the component must use `remo
 
   ```tsx
   export default function MyClientComponent() {
-    const callbackRef = (el: HTMLSpanElement) => {
+    const refCallback = (el: HTMLSpanElement) => {
       console.log("Remote component element: ", el)
     }
 
-    return <MyServerComponent ref={callbackRef} />
+    return <MyServerComponent ref={refCallback} />
   }
   ```
 
@@ -196,7 +196,7 @@ This could change in the future.  Of course, if React itself implements remote c
 
 ### Remote component ref limitations
 
-As [mentioned above](#refs-to-elements), remote components must use `remoteForwardRef` instead of `forwardRef`, and the `data-ref` attribute instead of the `ref` attribute.  This is a consequence of being a userland implementation.  If React itself implements remote components, it would likely eliminate this difference.
+As [mentioned above](#refs-to-elements), remote components must use `RemoteRef` instead of `React.Ref`, and the `data-ref` attribute instead of the `ref` attribute.  This is a consequence of being a userland implementation.  If React itself implements remote components, it would likely eliminate this difference.
 
 Additionally, currently, only element refs are supported — refs to arbitrary values are not supported.  In the future, refs to serializable values could be supported, but it would make sense to first support serializing a larger set of types, and also to switch to rendering an RSC payload instead of HTML.  If React itself implements remote components, the implementation might be simpler.
 
