@@ -1,4 +1,3 @@
-import { NextRequest } from "next/server"
 import { PassThrough } from "stream"
 
 // TODO Switch to `renderToReadableStream` when https://github.com/facebook/react/issues/26906 is fixed
@@ -15,7 +14,7 @@ import("react-dom/server").then(module => {
 
 export type RemoteComponentSet = { [key: string]: (props: any) => React.ReactNode }
 
-type RemoteComponentRouteHandler = (request: NextRequest) => Promise<Response>
+type RemoteComponentRouteHandler = (request: Request) => Promise<Response>
 
 function ChildrenPlaceholder() {
   return <template data-children-placeholder />
@@ -23,11 +22,13 @@ function ChildrenPlaceholder() {
 
 export function serveRemoteComponents(components: RemoteComponentSet): RemoteComponentRouteHandler {
   return async (request) => {
-    const componentName = request.nextUrl.searchParams.get("c")
+    const searchParams = new URL(request.url).searchParams
+
+    const componentName = searchParams.get("c")
     const Component = componentName && components[componentName]
     if (!Component) return new Response(`Unknown component: ${componentName}`, { status: 404 })
 
-    const propsJson = request.nextUrl.searchParams.get("p")
+    const propsJson = searchParams.get("p")
     const props = propsJson ? JSON.parse(propsJson) : {}
 
     const stream = new PassThrough()
