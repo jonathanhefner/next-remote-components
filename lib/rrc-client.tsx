@@ -1,6 +1,8 @@
-import { use, useCallback, useEffect, useId, useImperativeHandle, useMemo, useRef, useState } from "react"
+import { memo, use, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import type { RemoteComponentProps, RemoteComponentSet } from "./rrc-server"
+
+type PendingPromises = Map<Promise<RemoteComponentParts>, {}>
 
 type RemoteComponentParts = [
   placeholderCallback: React.RefCallback<ChildNode>,
@@ -8,26 +10,68 @@ type RemoteComponentParts = [
   refElement: Element | null,
 ]
 
-const pendingPromises: Record<string, Promise<RemoteComponentParts>> = {}
-
-function useRemoteComponent(name: string, route: string, props: Props): RemoteComponentParts {
+function useRemoteComponent(
+  name: string,
+  props: {},
+  route: string,
+  pendingPromises: PendingPromises
+): RemoteComponentParts {
   if (!globalThis.window?.document) return [() => { }, [], null] // Avoid fetch and DOM during SSR
 
+  const propsRef = useRef<{}>({ notEquivalent: Symbol() })
+  const promiseRef = useRef<Promise<RemoteComponentParts>>(null)
+
+  if (!isEquivalent(props, propsRef.current)) {
+    let promise
+
+    for (const [pendingPromise, promiseProps] of pendingPromises) {
+      if (isEquivalent(props, promiseProps)) {
+        promise = pendingPromise
+        break
+      }
+    }
+
+    if (!promise) {
+      promise = fetchRemoteComponentHtml(name, props, route).then(processRemoteComponentHtml)
+      pendingPromises.set(promise, props)
+    }
+
+    propsRef.current = props
+    promiseRef.current = promise
+  }
+
+  useEffect(() => { pendingPromises.delete(promiseRef.current!) }, [promiseRef.current])
+
+  return use(promiseRef.current!)
+}
+
+function isEquivalent(object1: {}, object2: {}) {
+  let parity = 0
+
+  for (const key in object1) {
+    // @ts-expect-error: TypeScript does not like dynamic keys
+    if (Object.is(object1[key], object2[key])) {
+      parity += 1
+    } else {
+      return false
+    }
+  }
+
+  for (const key in object2) {
+    parity -= 1
+  }
+
+  return parity === 0
+}
+
+async function fetchRemoteComponentHtml(name: string, props: Props, route: string): Promise<string> {
   const url = `${route}?${new URLSearchParams({ c: name, p: JSON.stringify(props) })}`
-  const componentId = useId()
 
-  const promise = useMemo(() => {
-    // TODO Use HTTP `QUERY` method when supported
-    // See https://datatracker.ietf.org/doc/draft-ietf-httpbis-safe-method-w-body/
-    return pendingPromises[componentId] ??= fetch(url).then(async response => {
-      if (!response.ok) throw new Error(`${response.statusText} (${response.status})`)
-      return processRemoteComponentHtml(await response.text())
-    })
-  }, [url])
-
-  useEffect(() => { delete pendingPromises[componentId] }, [url])
-
-  return use(promise)
+  // TODO Use HTTP `QUERY` method when supported
+  // See https://datatracker.ietf.org/doc/draft-ietf-httpbis-safe-method-w-body/
+  const response = await fetch(url)
+  if (!response.ok) throw new Error(`${response.statusText} (${response.status})`)
+  return await response.text()
 }
 
 function processRemoteComponentHtml(html: string): RemoteComponentParts {
@@ -108,10 +152,17 @@ function InjectChildren(
 
 type Props = { children?: React.ReactNode, ref?: React.ForwardedRef<Element> }
 
-function renderRemoteComponent(name: string, route: string, props: Props) {
+function renderRemoteComponent(
+  name: string,
+  props: Props,
+  route: string,
+  pendingPromises: PendingPromises
+) {
   let children, ref
   ({ children, ref, ...props } = props)
-  const [placeholderCallback, childrenPlaceholders, refElement] = useRemoteComponent(name, route, props)
+
+  const [placeholderCallback, childrenPlaceholders, refElement] =
+    useRemoteComponent(name, props, route, pendingPromises)
 
   useImperativeHandle(ref, () => refElement as Element, [refElement])
 
@@ -133,9 +184,15 @@ type ResolvedComponentSet<TSet extends RemoteComponentSet> = {
 
 export function useRemoteComponents<T extends RemoteComponentSet>(route: string): ResolvedComponentSet<T> {
   return new Proxy({}, {
-    get(memo: any, name: string) {
-      memo[name] ??= (props: Props) => renderRemoteComponent(name, route, props)
-      return memo[name]
+    get(memoized: any, name: string) {
+      let pendingPromises: PendingPromises
+
+      memoized[name] ??= (
+        pendingPromises = new Map<Promise<RemoteComponentParts>, {}>(),
+        memo((props: Props) => renderRemoteComponent(name, props, route, pendingPromises))
+      )
+
+      return memoized[name]
     }
   })
 }
