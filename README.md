@@ -176,13 +176,11 @@ Remote components support refs to elements, however the remote component must us
 
 ## Caveats
 
-There are some caveats with the current implementation.  Most of these could hypothetically be addressed in userland at some point in the future.  That said, if React itself implements remote components, it should be able to address all of them.
+There are caveats when using remote components.  However, most of these could be addressed in the future, particularly if React itself implements remote components.
 
-### Props must be JSON round-trip capable
+### Props must be serializable
 
-Remote components props are serialized as JSON when sending the request and deserialized when rendering the component.  Errors may occur if any prop values are not JSON round-trip capable.
-
-Note that React server actions can serialize a [larger set of types](https://react.dev/reference/rsc/use-server#serializable-parameters-and-return-values).  Currently, the serialization mechanism is not publicly documented and appears to be tied to the bundler.  In the future, though, remote components could support the same set of types.
+Remote components props are serialized in the same way as server action arguments.  Thus props values must be one of the [supported types](https://react.dev/reference/rsc/use-server#serializable-parameters-and-return-values).
 
 ### Serialized props should not be excessively large
 
@@ -200,7 +198,7 @@ This could change in the future.  Of course, if React itself implements remote c
 
 As [mentioned above](#refs-to-elements), remote components must use `RemoteRef` instead of `React.Ref`, and the `data-ref` attribute instead of the `ref` attribute.  This is a consequence of being a userland implementation.  If React itself implements remote components, it would likely eliminate this difference.
 
-Additionally, currently, only element refs are supported — refs to arbitrary values are not supported.  In the future, refs to serializable values could be supported, but it would make sense to first support serializing a larger set of types, and also to switch to rendering an RSC payload instead of HTML.  If React itself implements remote components, the implementation might be simpler.
+Additionally, currently, only element refs are supported — refs to arbitrary values are not supported.  However, it might be reasonable to support refs to arbitrary serializable values in the future.
 
 
 ## Further improvements from a non-userland implementation

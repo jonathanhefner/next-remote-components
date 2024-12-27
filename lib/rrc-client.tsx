@@ -1,5 +1,7 @@
 import { memo, use, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react"
 import { createPortal } from "react-dom"
+// @ts-expect-error: TypeScript cannot find type declarations for this module
+import { encodeReply } from "react-server-dom-webpack/client.edge"
 import type { RemoteComponentProps, RemoteComponentSet } from "./rrc-server"
 
 type PendingPromises = Map<Promise<RemoteComponentParts>, {}>
@@ -65,11 +67,23 @@ function isEquivalent(object1: {}, object2: {}) {
 }
 
 async function fetchRemoteComponentHtml(name: string, props: Props, route: string): Promise<string> {
-  const url = `${route}?${new URLSearchParams({ c: name, p: JSON.stringify(props) })}`
+  let encodedProps: string | URLSearchParams | FormData = await encodeReply(props)
+
+  let searchParams
+  if (typeof encodedProps === "string") {
+    // "0" key is based on `decodeReply` function in ReactFlightDOMServerEdge.js
+    searchParams = new URLSearchParams({ "0": encodedProps })
+  } else if (encodedProps instanceof FormData) {
+    // @ts-expect-error See https://github.com/microsoft/TypeScript/issues/30584
+    searchParams = new URLSearchParams(encodedProps)
+  } else {
+    searchParams = encodedProps
+  }
+  searchParams.append("rrc", name)
 
   // TODO Use HTTP `QUERY` method when supported
   // See https://datatracker.ietf.org/doc/draft-ietf-httpbis-safe-method-w-body/
-  const response = await fetch(url)
+  const response = await fetch(`${route}?${searchParams}`)
   if (!response.ok) throw new Error(`${response.statusText} (${response.status})`)
   return await response.text()
 }
