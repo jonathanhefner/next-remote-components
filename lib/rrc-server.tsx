@@ -1,4 +1,5 @@
 import { PassThrough } from "stream"
+import { decodeReply } from "react-server-dom-webpack/server.edge"
 
 // TODO Switch to `renderToReadableStream` when https://github.com/facebook/react/issues/26906 is fixed
 //
@@ -24,12 +25,14 @@ export function serveRemoteComponents(components: RemoteComponentSet): RemoteCom
   return async (request) => {
     const searchParams = new URL(request.url).searchParams
 
-    const componentName = searchParams.get("c")
+    const componentName = searchParams.get("rrc")
     const Component = componentName && components[componentName]
     if (!Component) return new Response(`Unknown component: ${componentName}`, { status: 404 })
+    searchParams.delete("rrc")
 
-    const propsJson = searchParams.get("p")
-    const props = propsJson ? JSON.parse(propsJson) : {}
+    const formData = new FormData()
+    searchParams.forEach((value, name) => formData.append(name, value))
+    const props = await decodeReply(formData)
 
     const stream = new PassThrough()
     renderToPipeableStream(
