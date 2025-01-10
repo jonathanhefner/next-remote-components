@@ -2,6 +2,8 @@ import DynamicSelectClient from "@/components/DynamicSelectClient"
 import MyClientComponent from "@/components/MyClientComponent"
 import Typeahead from "@/components/Typeahead"
 import "./page.css"
+import DynamicSelectClient2 from "@/components/DynamicSelectClient2"
+import Typeahead2 from "@/components/Typeahead2"
 
 export default function Home() {
   return <>
@@ -30,6 +32,24 @@ export default function Home() {
         <a target="_blank" href="https://github.com/jonathanhefner/next-remote-components/blob/main/components/Typeahead.tsx">Client Component</a>
       </p>
       <div className="demo"><Typeahead /></div>
+    </section>
+
+    <section className="dynamic-select">
+      <h2>Dynamic Select (prototype)</h2>
+      <p>
+        <a target="_blank" href="https://github.com/jonathanhefner/next-remote-components/blob/main/components/DynamicSelectServer.tsx">Server Component</a>{" | "}
+        <a target="_blank" href="https://github.com/jonathanhefner/next-remote-components/blob/main/components/DynamicSelectClient2.tsx">Client Component</a>
+      </p>
+      <div className="demo"><DynamicSelectClient2 /></div>
+    </section>
+
+    <section className="typeahead">
+      <h2>Typeahead (prototype)</h2>
+      <p>
+        <a target="_blank" href="https://github.com/jonathanhefner/next-remote-components/blob/main/components/TypeaheadSuggestions.tsx">Server Component</a>{" | "}
+        <a target="_blank" href="https://github.com/jonathanhefner/next-remote-components/blob/main/components/Typeahead2.tsx">Client Component</a>
+      </p>
+      <div className="demo"><Typeahead2 /></div>
     </section>
   </>
 }
