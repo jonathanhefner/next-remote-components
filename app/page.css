@@ -30,40 +30,10 @@ input, select, button {
   padding: 0.15em;
 }
 
-@keyframes flash {
-  0% {
-    background-color: gold;
-  }
 
-  100% {
-    background-color: inherit;
-  }
-}
-
-.flash {
-  animation: flash 750ms ease-in-out;
-}
-
-.basic-example {
-  > div * + * {
-    margin-top: 0.45rem;
-  }
-
-  * + input {
-    margin: 0 0 0 0.45em;
-  }
-
-  label {
-    display: inline-block;
-    min-width: 5em;
-  }
-
+.typeahead {
   input {
-    width: 10em;
-  }
-
-  ul {
-    padding-left: 1em;
+    width: 100%;
   }
 }
 
@@ -75,12 +45,5 @@ input, select, button {
 
   select {
     width: calc((100% - 0.45em) / 2);
-  }
-}
-
-
-.typeahead {
-  input {
-    width: 100%;
   }
 }

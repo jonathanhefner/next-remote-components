@@ -1,10 +1,12 @@
+'use server'
+
 const batches: Record<string, string[]> = {
   "batch1": [...Array(50).keys().map(i => `Item ${i + 100}`)],
   "batch2": [...Array(50).keys().map(i => `Item ${i + 200}`)],
   "batch3": [...Array(50).keys().map(i => `Item ${i + 300}`)],
 }
 
-export default async function DynamicSelectServer({ batch }: { batch: string }) {
+export async function getItemSelect({ batch }: { batch: string }) {
   const options = batches[batch] ?? []
 
   return (

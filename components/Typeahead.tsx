@@ -1,10 +1,10 @@
 'use client'
 
-import { useRemoteComponents } from "@/lib/rrc-client"
-import type myRemoteComponents from "./my-remote-components"
+import { useRemote } from "@/lib/rrc"
 import { useState } from "react"
+import { getTypeaheadSuggestions } from "./Typeahead.server"
 
-const { TypeaheadSuggestions } = useRemoteComponents<typeof myRemoteComponents>("/api/remote-component")
+const TypeaheadSuggestions = useRemote(getTypeaheadSuggestions)
 
 export default function Typeahead() {
   const [value, setValue] = useState("")
@@ -17,7 +17,7 @@ export default function Typeahead() {
       list="typeahead-suggestions"
     />
     <datalist id="typeahead-suggestions">
-      <TypeaheadSuggestions inputValue={value} />
+      {value && <TypeaheadSuggestions inputValue={value} />}
     </datalist>
   </>
 }
