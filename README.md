@@ -2,7 +2,7 @@
 
 This is a userland prototype and demo of remote components — React server components that are rendered remotely, on demand by client components, without the need for an explicit fetch or dedicated API endpoint.
 
-See it in action at https://next-remote-components.vercel.app/.
+See it in action at https://next-remote-components-v1.vercel.app/.
 
 The core implementation is in [`lib/rrc-server`](./lib/rrc-server.tsx) and [`lib/rrc-client`](./lib/rrc-client.tsx).
 
