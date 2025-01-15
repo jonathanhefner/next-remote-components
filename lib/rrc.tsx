@@ -1,4 +1,5 @@
-import { startTransition, useEffect, useState } from "react"
+import { startTransition, useContext, useEffect, useId, useState } from "react"
+import { createContext } from "react"
 
 export type RemoteComponent<TProps> = (props: TProps) => Promise<React.ReactNode>
 
@@ -6,23 +7,30 @@ const INITIAL_PROPS = { uniqueValue: Symbol() }
 
 export function useRemote<TProps = {}>(
   remoteComponent: RemoteComponent<TProps>
-): React.FunctionComponent<TProps & { children?: React.ReactNode }> {
-  return function({ children, ...newProps }) {
-    const [props, setProps] = useState<{}>(INITIAL_PROPS)
+): React.FunctionComponent<TProps & { fallback?: React.ReactNode }> {
+  return function(props) {
+    const { children, fallback, ...newProps } = props as typeof props & { children?: React.ReactNode }
+
     const [rendered, setRendered] = useState<React.ReactNode>(undefined)
-    const isLoading = !isEquivalent(newProps, props)
+    const [renderedProps, setRenderedProps] = useState<{}>(INITIAL_PROPS)
+    const isLoading = !isEquivalent(newProps, renderedProps)
+    const childrenKey = `${useId()}-children`
 
     useEffect(() => {
       if (isLoading) {
         startTransition(async () => {
-          // Need `as TProps` due to https://github.com/microsoft/TypeScript/issues/35858#issuecomment-573909154
-          setRendered(await remoteComponent(newProps as TProps))
-          setProps(newProps)
+          const remoteProps = children ? { ...newProps, children: <ChildrenPortal key={childrenKey} /> } : newProps
+          setRendered(await remoteComponent(remoteProps as TProps))
+          setRenderedProps(newProps)
         })
       }
     }, [isLoading])
 
-    return isLoading ? children : rendered
+    return (
+      <ChildrenPortalContext.Provider value={children}>
+        {isLoading ? fallback : rendered}
+      </ChildrenPortalContext.Provider>
+    )
   }
 }
 
@@ -43,4 +51,11 @@ function isEquivalent(object1: {}, object2: {}) {
   }
 
   return parity === 0
+}
+
+const ChildrenPortalContext = createContext<React.ReactNode>(null)
+
+function ChildrenPortal() {
+  const children = useContext(ChildrenPortalContext)
+  return children
 }

@@ -1,4 +1,5 @@
 import DynamicSelect from "@/components/DynamicSelect"
+import PassingChildren from "@/components/PassingChildren"
 import Typeahead from "@/components/Typeahead"
 import "./page.css"
 
@@ -20,6 +21,15 @@ export default function Home() {
         <a target="_blank" href="https://github.com/jonathanhefner/next-remote-components/blob/main/components/DynamicSelect.server.tsx">server <code>.tsx</code></a>
       </p>
       <div className="demo"><DynamicSelect /></div>
+    </section>
+
+    <section className="passing-children">
+      <h2>Passing Children</h2>
+      <p>
+        <a target="_blank" href="https://github.com/jonathanhefner/next-remote-components/blob/main/components/PassingChildren.tsx">client <code>.tsx</code></a>{" | "}
+        <a target="_blank" href="https://github.com/jonathanhefner/next-remote-components/blob/main/components/PassingChildren.server.tsx">server <code>.tsx</code></a>
+      </p>
+      <div className="demo"><PassingChildren /></div>
     </section>
   </>
 }
