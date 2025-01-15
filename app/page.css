@@ -47,3 +47,16 @@ input, select, button {
     width: calc((100% - 0.45em) / 2);
   }
 }
+
+
+.passing-children {
+  label {
+    display: block;
+    margin-top: 0.45em;
+  }
+
+  input, select {
+    margin-left: 0.45em;
+    width: 30%;
+  }
+}

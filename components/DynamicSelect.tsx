@@ -16,10 +16,14 @@ export default function DynamicSelect() {
       <option value="batch3">Batch 3</option>
     </select>
 
-    <ItemSelect batch={batch}>
-      <select disabled>
-        <option>Loading...</option>
-      </select>
-    </ItemSelect>
+    <ItemSelect batch={batch} fallback={<Loading />} />
   </>
+}
+
+function Loading() {
+  return (
+    <select disabled>
+      <option>Loading...</option>
+    </select>
+  )
 }
