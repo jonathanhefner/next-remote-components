@@ -4,9 +4,9 @@ import { useRemote } from "@/lib/rrc"
 import { useState } from "react"
 import { getUserSelect } from "./PassingChildren.server"
 
-const UserSelect = useRemote(getUserSelect)
 
 export default function PassingChildren() {
+  const [UserSelect] = useRemote(getUserSelect)
   const [username, setUsername] = useState("Me")
 
   return <>
