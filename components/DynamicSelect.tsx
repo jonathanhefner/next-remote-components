@@ -2,11 +2,10 @@
 
 import { useRemote } from "@/lib/rrc"
 import { useState } from "react"
-import { getItemSelect } from "./DynamicSelect.server"
-
-const ItemSelect = useRemote(getItemSelect)
+import { getItemOptions } from "./DynamicSelect.server"
 
 export default function DynamicSelect() {
+  const [ItemOptions, isLoading] = useRemote(getItemOptions)
   const [batch, setBatch] = useState("batch1")
 
   return <>
@@ -16,14 +15,8 @@ export default function DynamicSelect() {
       <option value="batch3">Batch 3</option>
     </select>
 
-    <ItemSelect batch={batch} fallback={<Loading />} />
-  </>
-}
-
-function Loading() {
-  return (
-    <select disabled>
-      <option>Loading...</option>
+    <select disabled={isLoading}>
+      <ItemOptions batch={batch} fallback={<option>Loading...</option>} />
     </select>
-  )
+  </>
 }

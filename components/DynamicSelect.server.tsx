@@ -6,14 +6,10 @@ const batches: Record<string, string[]> = {
   "batch3": [...Array(50).keys().map(i => `Item ${i + 300}`)],
 }
 
-export async function getItemSelect({ batch }: { batch: string }) {
+export async function getItemOptions({ batch }: { batch: string }) {
   const options = batches[batch] ?? []
 
-  return (
-    <select>
-      {options.map(value =>
-        <option key={value} value={value}>{value}</option>
-      )}
-    </select>
+  return options.map(value =>
+    <option key={value} value={value}>{value}</option>
   )
 }

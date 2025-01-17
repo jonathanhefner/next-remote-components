@@ -1,37 +1,50 @@
-import { startTransition, useContext, useEffect, useId, useState } from "react"
+import { startTransition, useCallback, useContext, useEffect, useId, useState } from "react"
 import { createContext } from "react"
 
 export type RemoteComponent<TProps> = (props: TProps) => Promise<React.ReactNode>
+
+export type UsingRemoteComponent<TProps> = [
+  component: React.FunctionComponent<TProps & { fallback?: React.ReactNode }>,
+  isLoading: boolean,
+]
 
 const INITIAL_PROPS = { uniqueValue: Symbol() }
 
 export function useRemote<TProps = {}>(
   remoteComponent: RemoteComponent<TProps>
-): React.FunctionComponent<TProps & { fallback?: React.ReactNode }> {
-  return function(props) {
-    const { children, fallback, ...newProps } = props as typeof props & { children?: React.ReactNode }
+): UsingRemoteComponent<TProps> {
+  const [isLoading, setIsLoading] = useState(false)
 
+  const component = useCallback((rawProps: {}) => {
+    let { children, fallback, ...props } = rawProps as any
+    const [renderingProps, setRenderingProps] = useState<{}>(INITIAL_PROPS)
+    const [renderedProps, setRenderedProps] = useState<{}>({})
     const [rendered, setRendered] = useState<React.ReactNode>(undefined)
-    const [renderedProps, setRenderedProps] = useState<{}>(INITIAL_PROPS)
-    const isLoading = !isEquivalent(newProps, renderedProps)
     const childrenKey = `${useId()}-children`
 
+    if (isEquivalent(props, renderingProps)) {
+      props = renderingProps
+    }
+
     useEffect(() => {
-      if (isLoading) {
-        startTransition(async () => {
-          const remoteProps = children ? { ...newProps, children: <ChildrenPortal key={childrenKey} /> } : newProps
-          setRendered(await remoteComponent(remoteProps as TProps))
-          setRenderedProps(newProps)
-        })
-      }
-    }, [isLoading])
+      setIsLoading(true)
+      setRenderingProps(props)
+      startTransition(async () => {
+        const remoteProps = children ? { ...props, children: <ChildrenPortal key={childrenKey} /> } : props
+        setRendered(await remoteComponent(remoteProps as TProps))
+        setRenderedProps(props)
+        setIsLoading(false)
+      })
+    }, [props])
 
     return (
       <ChildrenPortalContext.Provider value={children}>
-        {isLoading ? fallback : rendered}
+        {isEquivalent(renderingProps, renderedProps) ? rendered : fallback}
       </ChildrenPortalContext.Provider>
     )
-  }
+  }, [setIsLoading])
+
+  return [component, isLoading]
 }
 
 function isEquivalent(object1: {}, object2: {}) {

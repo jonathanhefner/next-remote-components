@@ -4,9 +4,9 @@ import { useRemote } from "@/lib/rrc"
 import { useState } from "react"
 import { getTypeaheadSuggestions } from "./Typeahead.server"
 
-const TypeaheadSuggestions = useRemote(getTypeaheadSuggestions)
 
 export default function Typeahead() {
+  const [TypeaheadSuggestions] = useRemote(getTypeaheadSuggestions)
   const [value, setValue] = useState("")
 
   return <>
