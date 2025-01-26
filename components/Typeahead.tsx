@@ -1,12 +1,12 @@
 'use client'
 
-import { useRemote } from "@/lib/rrc"
+import { remote, RemoteSuspense } from "@/lib/rrc"
 import { useState } from "react"
 import { getTypeaheadSuggestions } from "./Typeahead.server"
 
+const TypeaheadSuggestions = remote(getTypeaheadSuggestions)
 
 export default function Typeahead() {
-  const [TypeaheadSuggestions] = useRemote(getTypeaheadSuggestions)
   const [value, setValue] = useState("")
 
   return <>
@@ -17,7 +17,9 @@ export default function Typeahead() {
       list="typeahead-suggestions"
     />
     <datalist id="typeahead-suggestions">
-      {value && <TypeaheadSuggestions inputValue={value} />}
+      <RemoteSuspense>
+        {value && <TypeaheadSuggestions inputValue={value} />}
+      </RemoteSuspense>
     </datalist>
   </>
 }

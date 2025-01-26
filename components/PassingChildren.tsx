@@ -1,12 +1,12 @@
 'use client'
 
-import { useRemote } from "@/lib/rrc"
+import { remote, RemoteSuspense } from "@/lib/rrc"
 import { useState } from "react"
 import { getUserSelect } from "./PassingChildren.server"
 
+const UserSelect = remote(getUserSelect)
 
 export default function PassingChildren() {
-  const [UserSelect] = useRemote(getUserSelect)
   const [username, setUsername] = useState("Me")
 
   return <>
@@ -17,9 +17,11 @@ export default function PassingChildren() {
 
     <label>
       Server component for user:
-      <UserSelect>
-        <option value={username}>{username}</option>
-      </UserSelect>
+      <RemoteSuspense fallback={<select disabled />}>
+        <UserSelect>
+          <option value={username}>{username}</option>
+        </UserSelect>
+      </RemoteSuspense>
     </label>
   </>
 }

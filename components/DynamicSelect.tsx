@@ -1,11 +1,12 @@
 'use client'
 
-import { useRemote } from "@/lib/rrc"
+import { remote, RemoteSuspense } from "@/lib/rrc"
 import { useState } from "react"
 import { getItemOptions } from "./DynamicSelect.server"
 
+const ItemOptions = remote(getItemOptions)
+
 export default function DynamicSelect() {
-  const [ItemOptions, isLoading] = useRemote(getItemOptions)
   const [batch, setBatch] = useState("batch1")
 
   return <>
@@ -15,8 +16,18 @@ export default function DynamicSelect() {
       <option value="batch3">Batch 3</option>
     </select>
 
-    <select disabled={isLoading}>
-      <ItemOptions batch={batch} fallback={<option>Loading...</option>} />
-    </select>
+    <RemoteSuspense fallback={<Loading />}>
+      <select>
+        <ItemOptions batch={batch} />
+      </select>
+    </RemoteSuspense>
   </>
+}
+
+function Loading() {
+  return (
+    <select disabled>
+      <option>Loading...</option>
+    </select>
+  )
 }
