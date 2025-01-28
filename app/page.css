@@ -60,3 +60,24 @@ input, select, button {
     width: 30%;
   }
 }
+
+
+.waterfall {
+  label {
+    display: block;
+    margin-top: 0.45em;
+  }
+
+  input {
+    margin-left: 0.45em;
+    width: 30%;
+  }
+
+  li {
+    display: inline-block;
+    margin: 0.45em 0.45em 0 0;
+    border: 1px solid grey;
+    border-radius: 0.15em;
+    padding: 0.3em;
+  }
+}
