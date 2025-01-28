@@ -1,6 +1,7 @@
-import DynamicSelect from "@/components/DynamicSelect"
-import PassingChildren from "@/components/PassingChildren"
-import Typeahead from "@/components/Typeahead"
+import { DynamicSelect } from "@/components/DynamicSelect"
+import { PassingChildren } from "@/components/PassingChildren"
+import { Typeahead } from "@/components/Typeahead"
+import { Waterfall } from "@/components/Waterfall"
 import "./page.css"
 
 export default function Home() {
@@ -30,6 +31,15 @@ export default function Home() {
         <a target="_blank" href="https://github.com/jonathanhefner/next-remote-components/blob/main/components/PassingChildren.server.tsx">server <code>.tsx</code></a>
       </p>
       <div className="demo"><PassingChildren /></div>
+    </section>
+
+    <section className="waterfall">
+      <h2>Waterfall</h2>
+      <p>
+        <a target="_blank" href="https://github.com/jonathanhefner/next-remote-components/blob/main/components/Waterfall.tsx">client <code>.tsx</code></a>{" | "}
+        <a target="_blank" href="https://github.com/jonathanhefner/next-remote-components/blob/main/components/Waterfall.server.tsx">server <code>.tsx</code></a>
+      </p>
+      <div className="demo"><Waterfall /></div>
     </section>
   </>
 }

@@ -6,7 +6,7 @@ import { getItemOptions } from "./DynamicSelect.server"
 
 const ItemOptions = remote(getItemOptions)
 
-export default function DynamicSelect() {
+export function DynamicSelect() {
   const [batch, setBatch] = useState("batch1")
 
   return <>

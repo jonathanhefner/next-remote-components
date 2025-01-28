@@ -6,7 +6,7 @@ import { getTypeaheadSuggestions } from "./Typeahead.server"
 
 const TypeaheadSuggestions = remote(getTypeaheadSuggestions)
 
-export default function Typeahead() {
+export function Typeahead() {
   const [value, setValue] = useState("")
 
   return <>

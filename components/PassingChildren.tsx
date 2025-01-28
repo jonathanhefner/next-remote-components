@@ -6,7 +6,7 @@ import { getUserSelect } from "./PassingChildren.server"
 
 const UserSelect = remote(getUserSelect)
 
-export default function PassingChildren() {
+export function PassingChildren() {
   const [username, setUsername] = useState("Me")
 
   return <>
