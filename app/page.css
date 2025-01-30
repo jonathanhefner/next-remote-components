@@ -49,6 +49,52 @@ input, select, button {
 }
 
 
+.event-calendar {
+  nav {
+    display: flex;
+    align-items: center;
+    height: 2.4em;
+    width: calc(7 * 2.25em);
+
+    font-weight: bold;
+
+    button {
+      height: 100%;
+      width: 25%;
+      font-size: 1.5em;
+    }
+
+    .calendar-month {
+      flex-grow: 1;
+      text-align: center;
+    }
+  }
+
+  .calendar-grid {
+    margin-top: 0.3em;
+
+    display: grid;
+    grid-template-rows: 2.25em 2.25em 2.25em 2.25em 2.25em 2.25em;
+    grid-template-columns: 2.25em 2.25em 2.25em 2.25em 2.25em 2.25em 2.25em;
+
+    & > div {
+      padding-top: 0.45em;
+      text-align: center;
+      border: 1px solid grey;
+    }
+
+    & > div:has(.event) {
+      background-color: lightcyan;
+      font-weight: bold;
+    }
+
+    & > div:empty {
+      background-color: lightgray;
+    }
+  }
+}
+
+
 .passing-children {
   label {
     display: block;

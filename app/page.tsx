@@ -3,6 +3,7 @@ import PassingChildren from "@/components/PassingChildren"
 import Typeahead from "@/components/Typeahead"
 import "./page.css"
 import { Waterfall } from "@/components/Waterfall"
+import { EventCalendar } from "@/components/EventCalendar"
 
 export default function Home() {
   return <>
@@ -22,6 +23,15 @@ export default function Home() {
         <a target="_blank" href="https://github.com/jonathanhefner/next-remote-components/blob/main/components/DynamicSelect.server.tsx">server <code>.tsx</code></a>
       </p>
       <div className="demo"><DynamicSelect /></div>
+    </section>
+
+    <section className="event-calendar">
+      <h2>Event Calendar</h2>
+      <p>
+        <a target="_blank" href="https://github.com/jonathanhefner/next-remote-components/blob/main/components/EventCalendar.tsx">client <code>.tsx</code></a>{" | "}
+        <a target="_blank" href="https://github.com/jonathanhefner/next-remote-components/blob/main/components/EventCalendar.server.tsx">server <code>.tsx</code></a>
+      </p>
+      <div className="demo"><EventCalendar /></div>
     </section>
 
     <section className="passing-children">
