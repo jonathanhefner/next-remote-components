@@ -2,8 +2,11 @@ import { DynamicSelect } from "@/components/DynamicSelect"
 import { EventCalendar } from "@/components/EventCalendar"
 import { PassingChildren } from "@/components/PassingChildren"
 import { Typeahead } from "@/components/Typeahead"
-import { Waterfall } from "@/components/Waterfall"
+import { Waterfall, Waterfalling } from "@/components/Waterfall"
 import "./page.css"
+
+// TODO Remove after https://github.com/vercel/next.js/issues/58125 is fixed.
+const WORKAROUND_ISSUE_58125 = Waterfalling
 
 export default function Home() {
   return <>
